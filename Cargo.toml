@@ -1,0 +1,10 @@
+[package]
+name = "simview"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+egui = "0.33.3"
+glam = "0.34.0"
+glfw = "0.63.0"
+wgpu = "30.0.1"
