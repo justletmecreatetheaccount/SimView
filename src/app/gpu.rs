@@ -1,13 +1,15 @@
+use std::sync::Arc;
+
 use pollster::FutureExt;
 use wgpu::{
-    Adapter, Backends, Features, FeaturesWGPU, Instance, InstanceDescriptor, RequestAdapterOptions,
-    SurfaceConfiguration, TextureUsages, Trace, wgt::DeviceDescriptor,
+    Backends, InstanceDescriptor, RequestAdapterOptions, SurfaceConfiguration, TextureUsages,
+    Trace, wgt::DeviceDescriptor,
 };
 
 use crate::app::window::WindowManager;
 
-pub struct Gpu<'window> {
-    surface: wgpu::Surface<'window>,
+pub struct Gpu {
+    surface: wgpu::Surface<'static>,
     device: wgpu::Device,
     queue: wgpu::Queue,
     config: wgpu::SurfaceConfiguration,
@@ -15,7 +17,7 @@ pub struct Gpu<'window> {
 }
 
 impl Gpu {
-    pub fn new<'window>(window: &'window WindowManager) -> Gpu {
+    pub fn new(window: &Arc<WindowManager>) -> Gpu {
         let instance = wgpu::Instance::new(InstanceDescriptor {
             backends: Backends::PRIMARY,
             flags: Default::default(),

@@ -2,6 +2,8 @@ mod gpu;
 mod renderer;
 mod window;
 
+use std::sync::Arc;
+
 use glfw::{Action, Key};
 use gpu::Gpu;
 use renderer::Renderer;
@@ -9,7 +11,7 @@ use window::WindowManager;
 
 pub struct App {
     glfw_instance: glfw::Glfw,
-    window: WindowManager,
+    window: Arc<WindowManager>,
     renderer: Renderer,
     gpu: Gpu,
 }
@@ -21,9 +23,14 @@ impl App {
         glfw_instance.window_hint(glfw::WindowHint::Resizable(false));
         glfw_instance.window_hint(glfw::WindowHint::ClientApi(glfw::ClientApiHint::NoApi));
 
-        let window = WindowManager::new(width, height, window_title, &mut glfw_instance);
+        let window = Arc::new(WindowManager::new(
+            width,
+            height,
+            window_title,
+            &mut glfw_instance,
+        ));
 
-        let gpu = Gpu::new(window.get_glfw_window());
+        let gpu = Gpu::new(&window);
 
         App {
             glfw_instance,
