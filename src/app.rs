@@ -5,11 +5,11 @@ mod window;
 use glfw::{Action, Key};
 use gpu::Gpu;
 use renderer::Renderer;
-use window::Window;
+use window::WindowManager;
 
 pub struct App {
     glfw_instance: glfw::Glfw,
-    window: Window,
+    window: WindowManager,
     renderer: Renderer,
     gpu: Gpu,
 }
@@ -21,13 +21,15 @@ impl App {
         glfw_instance.window_hint(glfw::WindowHint::Resizable(false));
         glfw_instance.window_hint(glfw::WindowHint::ClientApi(glfw::ClientApiHint::NoApi));
 
-        let window = Window::new(width, height, window_title, &mut glfw_instance);
+        let window = WindowManager::new(width, height, window_title, &mut glfw_instance);
+
+        let gpu = Gpu::new(window.get_glfw_window());
 
         App {
             glfw_instance,
             window,
             renderer: Renderer {},
-            gpu: Gpu {},
+            gpu,
         }
     }
 
