@@ -1,10 +1,10 @@
 use glfw::{GlfwReceiver, PWindow, WindowEvent};
 
 pub struct WindowManager {
-    glfw_window: PWindow,
+    glfw_window: Box<PWindow>,
     events: glfw::GlfwReceiver<(f64, glfw::WindowEvent)>,
     window_size: (u32, u32),
-    window_title: String,
+    _window_title: String,
 }
 
 impl WindowManager {
@@ -20,9 +20,11 @@ impl WindowManager {
 
         glfw_window.set_key_polling(true);
 
+        let glfw_window = Box::new(glfw_window);
+
         WindowManager {
             window_size: (width, height),
-            window_title: String::from(window_title),
+            _window_title: String::from(window_title),
             glfw_window,
             events,
         }

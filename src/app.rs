@@ -1,19 +1,20 @@
 mod gpu;
+mod input_handler;
 mod renderer;
 mod window;
 
-use std::sync::Arc;
-
-use glfw::{Action, Key};
 use gpu::Gpu;
 use renderer::Renderer;
 use window::WindowManager;
 
+use crate::app::input_handler::{AppActions, InputHandler};
+
 pub struct App {
     glfw_instance: glfw::Glfw,
-    window: Arc<WindowManager>,
+    window: WindowManager,
     renderer: Renderer,
     gpu: Gpu,
+    input_handler: InputHandler,
 }
 
 impl App {
@@ -23,20 +24,20 @@ impl App {
         glfw_instance.window_hint(glfw::WindowHint::Resizable(false));
         glfw_instance.window_hint(glfw::WindowHint::ClientApi(glfw::ClientApiHint::NoApi));
 
-        let window = Arc::new(WindowManager::new(
-            width,
-            height,
-            window_title,
-            &mut glfw_instance,
-        ));
+        let window = WindowManager::new(width, height, window_title, &mut glfw_instance);
 
         let gpu = Gpu::new(&window);
+
+        let renderer = Renderer::new(&gpu);
+
+        let input_handler = InputHandler::new();
 
         App {
             glfw_instance,
             window,
-            renderer: Renderer {},
+            renderer,
             gpu,
+            input_handler,
         }
     }
 
@@ -45,16 +46,23 @@ impl App {
     // Loop until the user closes the window
     pub fn main_loop(&mut self) {
         while !self.window.should_close() {
+            self.renderer.render(&self.gpu);
             // Poll for and process events
             self.glfw_instance.poll_events();
             for (_, event) in self.window.drain_events() {
                 println!("{:?}", event);
-                match event {
-                    glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => {
-                        self.window.set_should_close(true);
+
+                if let Some(action) = self.input_handler.handle_input(&event) {
+                    match action {
+                        AppActions::Exit => {
+                            self.window.set_should_close(true);
+                        }
+                        AppActions::OrbitCamera { dx, dy } => {}
+                        _ => {}
                     }
-                    _ => {}
                 }
+
+                self.input_handler.reset_state();
             }
         }
     }
