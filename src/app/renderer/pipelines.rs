@@ -1,9 +1,14 @@
+use std::num::NonZero;
+
 use wgpu::{
-    ColorTargetState, ColorWrites, Device, FragmentState, MultisampleState, PrimitiveState,
-    RenderPipeline, RenderPipelineDescriptor, TextureFormat, VertexAttribute, include_wgsl,
+    BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry, ColorTargetState,
+    ColorWrites, Device, FragmentState, MultisampleState, PipelineLayout, PipelineLayoutDescriptor,
+    PrimitiveState, RenderPipeline, RenderPipelineDescriptor, TextureFormat, VertexAttribute,
+    include_wgsl,
 };
 
 pub struct Pipelines {
+    pub each_frame_bgl: BindGroupLayout,
     pub circle: RenderPipeline,
 }
 
@@ -11,6 +16,31 @@ impl Pipelines {
     pub fn new(device: &Device, preferred_format: TextureFormat) -> Pipelines {
         let shader_desc = include_wgsl!("../../shaders/render/circle.wgsl");
         let shader = device.create_shader_module(shader_desc);
+
+        let camera_entry = BindGroupLayoutEntry {
+            binding: 0,
+            visibility: wgpu::ShaderStages::VERTEX,
+            ty: wgpu::BindingType::Buffer {
+                ty: wgpu::BufferBindingType::Uniform,
+                has_dynamic_offset: false,
+                min_binding_size: None, // Won't bother now
+            },
+            count: None, // Again won't bother
+        };
+
+        let bind_group_layout_desc = &BindGroupLayoutDescriptor {
+            label: Some("Each Frame BG Layout"),
+            entries: &[camera_entry],
+        };
+        let each_frame_bgl = device.create_bind_group_layout(bind_group_layout_desc);
+
+        let layout_desc = PipelineLayoutDescriptor {
+            label: Some("Circle Pipeline Layout"),
+            bind_group_layouts: &[Some(&each_frame_bgl)],
+            immediate_size: 0,
+        };
+        let layout = &device.create_pipeline_layout(&layout_desc);
+
         let position_attribute = VertexAttribute {
             format: wgpu::VertexFormat::Float32x3,
             offset: 0,
@@ -60,7 +90,7 @@ impl Pipelines {
 
         let circle_desc = RenderPipelineDescriptor {
             label: Some("Circle pipeline"),
-            layout: None,
+            layout: Some(layout),
             vertex: vertex_state,
             primitive: primitive_state,
             depth_stencil: None,
@@ -72,6 +102,9 @@ impl Pipelines {
 
         let circle = device.create_render_pipeline(&circle_desc);
 
-        Pipelines { circle }
+        Pipelines {
+            each_frame_bgl,
+            circle,
+        }
     }
 }

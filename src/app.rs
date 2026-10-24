@@ -1,3 +1,4 @@
+mod camera;
 mod gpu;
 mod input_handler;
 mod renderer;
@@ -7,13 +8,17 @@ use gpu::Gpu;
 use renderer::Renderer;
 use window::WindowManager;
 
-use crate::app::input_handler::{AppActions, InputHandler};
+use crate::app::{
+    camera::Camera,
+    input_handler::{AppActions, InputHandler},
+};
 
 pub struct App {
     glfw_instance: glfw::Glfw,
     window: WindowManager,
-    renderer: Renderer,
     gpu: Gpu,
+    renderer: Renderer,
+    camera: Camera,
     input_handler: InputHandler,
 }
 
@@ -30,13 +35,17 @@ impl App {
 
         let renderer = Renderer::new(&gpu);
 
+        let aspect_ratio = window.window_size().0 as f32 / window.window_size().1 as f32;
+        let camera = Camera::new(aspect_ratio);
+
         let input_handler = InputHandler::new();
 
         App {
             glfw_instance,
             window,
-            renderer,
             gpu,
+            renderer,
+            camera,
             input_handler,
         }
     }
@@ -46,7 +55,7 @@ impl App {
     // Loop until the user closes the window
     pub fn main_loop(&mut self) {
         while !self.window.should_close() {
-            self.renderer.render(&self.gpu);
+            self.renderer.render(&self.gpu, &self.camera);
             // Poll for and process events
             self.glfw_instance.poll_events();
             for (_, event) in self.window.drain_events() {
@@ -57,12 +66,9 @@ impl App {
                         AppActions::Exit => {
                             self.window.set_should_close(true);
                         }
-                        AppActions::OrbitCamera { dx, dy } => {}
-                        _ => {}
+                        AppActions::OrbitCamera { dx, dy } => self.camera.orbit(dx, dy),
                     }
                 }
-
-                self.input_handler.reset_state();
             }
         }
     }

@@ -1,5 +1,4 @@
 mod buffers;
-mod camera;
 mod pipelines;
 
 use wgpu::{
@@ -9,33 +8,27 @@ use wgpu::{
 };
 
 use crate::app::{
+    camera::{Camera, CameraUniforms},
     gpu::Gpu,
-    renderer::{buffers::Buffers, camera::Camera, pipelines::Pipelines},
+    renderer::{buffers::Buffers, pipelines::Pipelines},
 };
 
 pub struct Renderer {
-    camera: Camera,
     pipelines: Pipelines,
     buffers: Buffers,
 }
-
 impl Renderer {
     pub fn new(gpu: &Gpu) -> Renderer {
-        let camera = Camera::new();
         let pipelines = Pipelines::new(gpu.device(), gpu.preferred_format());
-        let buffers = Buffers::new(gpu.device(), 1);
+
+        let buffers = Buffers::new(1, &pipelines.each_frame_bgl, gpu.device());
 
         buffers.init_buffers_data(gpu.queue());
 
-        Renderer {
-            camera,
-            pipelines,
-            buffers,
-        }
+        Renderer { pipelines, buffers }
     }
 
-    pub fn render(&self, gpu: &Gpu) {
-        // Will need to be reworked for better error handling
+    pub fn render(&self, gpu: &Gpu, camera: &Camera) {
         let current_texture = match gpu.surface().get_current_texture() {
             wgpu::CurrentSurfaceTexture::Success(texture) => texture,
             wgpu::CurrentSurfaceTexture::Occluded | wgpu::CurrentSurfaceTexture::Timeout => {
@@ -55,6 +48,7 @@ impl Renderer {
             wgpu::CurrentSurfaceTexture::Validation => {
                 unreachable!("No error scope registered, so validation errors will panic")
             }
+            // Will need to be reworked for better error handling
             wgpu::CurrentSurfaceTexture::Lost => {
                 println!("LOST");
                 panic!("can't be bothered to fix, AAAAAAAAA")
@@ -77,6 +71,12 @@ impl Renderer {
         let mut encoder = gpu.device().create_command_encoder(&encoder_descriptor);
 
         self.record_render_pass(&mut encoder, &current_texture_view);
+
+        let cam_uniforms = CameraUniforms::from_cam(camera);
+        let bytes: &[u8] = bytemuck::bytes_of(&cam_uniforms);
+
+        gpu.queue()
+            .write_buffer(&self.buffers.camera_buffer, 0, bytes);
 
         let command_buffer = encoder.finish();
         gpu.queue().submit([command_buffer]);
@@ -102,7 +102,7 @@ impl Renderer {
 
         render_pass.set_pipeline(&self.pipelines.circle);
         render_pass.set_vertex_buffer(0, self.buffers.vertex_buffer.slice(0..48));
-        //render_pass.set_bind_group(index, bind_group, offsets); will be needed eventually
+        render_pass.set_bind_group(0, Some(&self.buffers.each_frame_bg), &[]);
         render_pass.draw(0..4, 0..1);
     }
 }

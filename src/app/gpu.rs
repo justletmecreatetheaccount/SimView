@@ -31,8 +31,8 @@ impl Gpu {
             instance
                 .create_surface_unsafe(
                     wgpu::SurfaceTargetUnsafe::from_display_and_window(
-                        window.get_glfw_window(),
-                        window.get_glfw_window(),
+                        window.glfw_window(),
+                        window.glfw_window(),
                     )
                     .expect("Can't create surface target from window"),
                 )
@@ -77,8 +77,8 @@ impl Gpu {
             usage: TextureUsages::RENDER_ATTACHMENT,
             format: preferred_format,
             color_space: wgpu::SurfaceColorSpace::Auto,
-            width: window.get_window_size().0,
-            height: window.get_window_size().1,
+            width: window.window_size().0,
+            height: window.window_size().1,
             present_mode: wgpu::PresentMode::Fifo,
             desired_maximum_frame_latency: Default::default(),
             alpha_mode: caps.alpha_modes[0],

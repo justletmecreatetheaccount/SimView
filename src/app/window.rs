@@ -42,11 +42,11 @@ impl WindowManager {
         self.glfw_window.set_should_close(value);
     }
 
-    pub fn get_glfw_window(&self) -> &PWindow {
+    pub fn glfw_window(&self) -> &PWindow {
         &self.glfw_window
     }
 
-    pub fn get_window_size(&self) -> (u32, u32) {
+    pub fn window_size(&self) -> (u32, u32) {
         self.window_size
     }
 }

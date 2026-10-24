@@ -1,8 +1,13 @@
-use wgpu::{Buffer, Device, Queue};
+use wgpu::{
+    BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, Buffer, Device, Queue,
+};
+
+use crate::app::camera::{Camera, CameraUniforms};
 
 // Useful info since I don't wan't to use encase
 // https://www.w3.org/TR/WGSL/#alignment-and-size
 pub struct Buffers {
+    pub each_frame_bg: BindGroup,
     pub camera_buffer: Buffer,
     pub vertex_buffer: Buffer,
     // Positions, Velocities
@@ -12,13 +17,15 @@ pub struct Buffers {
 }
 
 impl Buffers {
-    pub fn new(device: &Device, particles: u64) -> Buffers {
+    pub fn new(particles: u64, bind_group_layout: &BindGroupLayout, device: &Device) -> Buffers {
         let camera_buffer_desc = wgpu::BufferDescriptor {
             label: Some("Camera buffer"),
-            size: 32, //Position and orientation + 4bytes alignment
+            size: 64, //Mat4 view_proj_matrix
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         };
+
+        // CHANGE TO AN IMMEDIATE
         let vertex_buffer_desc = wgpu::BufferDescriptor {
             label: Some("Vertex buffer"),
             size: 48, //Holds one instance of a square
@@ -43,7 +50,23 @@ impl Buffers {
         let hot_buffer = device.create_buffer(&hot_buffer_desc);
         let cold_buffer = device.create_buffer(&cold_buffer_desc);
 
+        let camera_uniform_entry = BindGroupEntry {
+            binding: 0,
+            resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
+                buffer: &camera_buffer,
+                offset: 0,
+                size: None,
+            }),
+        };
+        let bind_group_desc = BindGroupDescriptor {
+            label: Some("Each Frame BindGroup"),
+            layout: bind_group_layout,
+            entries: &[camera_uniform_entry],
+        };
+        let each_frame_bg = device.create_bind_group(&bind_group_desc);
+
         Buffers {
+            each_frame_bg,
             camera_buffer,
             vertex_buffer,
             hot_buffer,
@@ -58,10 +81,9 @@ impl Buffers {
         let bytes: &[u8] = bytemuck::cast_slice(&position);
         queue.write_buffer(&self.vertex_buffer, 0, bytes);
 
-        let camera_position_padding_orientation: [f32; 8] =
-            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+        let camera_uniforms = CameraUniforms::from_cam(&Camera::new(0.0));
 
-        let bytes: &[u8] = bytemuck::cast_slice(&camera_position_padding_orientation);
+        let bytes: &[u8] = bytemuck::bytes_of(&camera_uniforms);
         queue.write_buffer(&self.camera_buffer, 0, bytes);
     }
 }
