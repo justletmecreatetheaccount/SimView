@@ -4,6 +4,7 @@ pub struct WindowManager {
     glfw_window: Box<PWindow>,
     events: glfw::GlfwReceiver<(f64, glfw::WindowEvent)>,
     window_size: (u32, u32),
+    framebuffer_size: (u32, u32),
     _window_title: String,
 }
 
@@ -19,11 +20,18 @@ impl WindowManager {
             .expect("Failed to create GLFW window.");
 
         glfw_window.set_key_polling(true);
+        glfw_window.set_cursor_pos_polling(true);
+        glfw_window.set_mouse_button_polling(true);
+        glfw_window.set_scroll_polling(true);
 
         let glfw_window = Box::new(glfw_window);
 
         WindowManager {
             window_size: (width, height),
+            framebuffer_size: (
+                glfw_window.get_framebuffer_size().0 as u32,
+                glfw_window.get_framebuffer_size().1 as u32,
+            ),
             _window_title: String::from(window_title),
             glfw_window,
             events,
@@ -48,5 +56,9 @@ impl WindowManager {
 
     pub fn window_size(&self) -> (u32, u32) {
         self.window_size
+    }
+
+    pub fn framebuffer_size(&self) -> (u32, u32) {
+        self.framebuffer_size
     }
 }

@@ -9,7 +9,7 @@ struct CameraUniforms {
 
 @vertex
 fn vtx_main(vtx_in: VertexIn) -> @builtin(position) vec4f {
-    let vtx_proj = vec4f(vtx_in.position, 1) * camera.view_proj_mat;
+    let vtx_proj = camera.view_proj_mat * vec4f(vtx_in.position, 1);
     return vec4f(vtx_proj);
 }
 

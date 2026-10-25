@@ -3,6 +3,11 @@ name = "simview"
 version = "0.1.0"
 edition = "2024"
 
+[package.metadata.wgsl-analyzer]
+edition = "2026_pre"
+package_manager = "cargo"
+root = "src/shaders"
+
 [dependencies]
 bytemuck = "1.25.2"
 egui = "0.33.3"
@@ -11,3 +16,4 @@ glam = { version = "0.34.0", features = ["bytemuck"] }
 glfw = "0.63.0"
 pollster = "1.0.1"
 wgpu = "30.0.1"
+

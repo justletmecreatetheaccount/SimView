@@ -14,12 +14,12 @@ use crate::app::{
 };
 
 pub struct App {
-    glfw_instance: glfw::Glfw,
-    window: WindowManager,
-    gpu: Gpu,
-    renderer: Renderer,
-    camera: Camera,
     input_handler: InputHandler,
+    camera: Camera,
+    renderer: Renderer,
+    gpu: Gpu,
+    window: WindowManager,
+    glfw_instance: glfw::Glfw,
 }
 
 impl App {
@@ -35,7 +35,7 @@ impl App {
 
         let renderer = Renderer::new(&gpu);
 
-        let aspect_ratio = window.window_size().0 as f32 / window.window_size().1 as f32;
+        let aspect_ratio = window.framebuffer_size().0 as f32 / window.framebuffer_size().1 as f32;
         let camera = Camera::new(aspect_ratio);
 
         let input_handler = InputHandler::new();
@@ -59,14 +59,15 @@ impl App {
             // Poll for and process events
             self.glfw_instance.poll_events();
             for (_, event) in self.window.drain_events() {
-                println!("{:?}", event);
-
+                println!("event : {:?}", event);
                 if let Some(action) = self.input_handler.handle_input(&event) {
                     match action {
                         AppActions::Exit => {
                             self.window.set_should_close(true);
                         }
                         AppActions::OrbitCamera { dx, dy } => self.camera.orbit(dx, dy),
+                        AppActions::PanCamera { dx, dy } => self.camera.pan(dx, dy),
+                        AppActions::ZoomCamera { dy } => self.camera.zoom(dy),
                     }
                 }
             }
