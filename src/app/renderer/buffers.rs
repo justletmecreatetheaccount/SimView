@@ -20,7 +20,7 @@ impl Buffers {
     pub fn new(particles: u64, bind_group_layout: &BindGroupLayout, device: &Device) -> Buffers {
         let camera_buffer_desc = wgpu::BufferDescriptor {
             label: Some("Camera buffer"),
-            size: 64, //Mat4 view_proj_matrix
+            size: size_of::<glam::Mat4>() as u64, //Mat4 view_proj_matrix
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         };
@@ -28,7 +28,7 @@ impl Buffers {
         // CHANGE TO AN IMMEDIATE
         let vertex_buffer_desc = wgpu::BufferDescriptor {
             label: Some("Vertex buffer"),
-            size: 48, //Holds one instance of a square
+            size: 4 * size_of::<Vertex>() as u64, //Holds one instance of a square and uv coordinates
             usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         };
@@ -75,10 +75,26 @@ impl Buffers {
     }
 
     pub fn init_buffers_data(&self, queue: &Queue) {
-        let position: [f32; 12] = [
-            -0.5, 0.5, 0.0, 0.5, 0.5, 0.0, -0.5, -0.5, 0.0, 0.5, -0.5, 0.0,
+        let square_verticies: [Vertex; 4] = [
+            Vertex {
+                position: glam::vec3(-0.5, 0.5, 0.0),
+                uv: glam::vec2(-1.0, 1.0),
+            },
+            Vertex {
+                position: glam::vec3(0.5, 0.5, 0.0),
+                uv: glam::vec2(1.0, 1.0),
+            },
+            Vertex {
+                position: glam::vec3(-0.5, -0.5, 0.0),
+
+                uv: glam::vec2(-1.0, -1.0),
+            },
+            Vertex {
+                position: glam::vec3(0.5, -0.5, 0.0),
+                uv: glam::vec2(1.0, -1.0),
+            },
         ];
-        let bytes: &[u8] = bytemuck::cast_slice(&position);
+        let bytes: &[u8] = bytemuck::cast_slice(&square_verticies);
         queue.write_buffer(&self.vertex_buffer, 0, bytes);
 
         let camera_uniforms = CameraUniforms::from_cam(&Camera::new(0.0));
@@ -86,4 +102,11 @@ impl Buffers {
         let bytes: &[u8] = bytemuck::bytes_of(&camera_uniforms);
         queue.write_buffer(&self.camera_buffer, 0, bytes);
     }
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct Vertex {
+    position: glam::Vec3,
+    uv: glam::Vec2,
 }

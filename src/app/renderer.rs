@@ -4,7 +4,7 @@ mod pipelines;
 use wgpu::{
     CommandBuffer, CommandEncoder, CommandEncoderDescriptor, Device, Queue,
     RenderPassColorAttachment, RenderPassDescriptor, TextureFormat, TextureView,
-    TextureViewDescriptor,
+    TextureViewDescriptor, VertexStepMode::Vertex,
 };
 
 use crate::app::{
@@ -101,7 +101,8 @@ impl Renderer {
         let mut render_pass = encoder.begin_render_pass(&render_pass_desc);
 
         render_pass.set_pipeline(&self.pipelines.circle);
-        render_pass.set_vertex_buffer(0, self.buffers.vertex_buffer.slice(0..48));
+        let vtx_buffer_range = 0..((size_of::<buffers::Vertex>() * 4) as u64);
+        render_pass.set_vertex_buffer(0, self.buffers.vertex_buffer.slice(vtx_buffer_range));
         render_pass.set_bind_group(0, Some(&self.buffers.each_frame_bg), &[]);
         render_pass.draw(0..4, 0..1);
     }

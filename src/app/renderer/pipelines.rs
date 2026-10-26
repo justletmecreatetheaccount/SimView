@@ -46,10 +46,17 @@ impl Pipelines {
             offset: 0,
             shader_location: 0,
         };
+
+        let uv_attribute = VertexAttribute {
+            format: wgpu::VertexFormat::Float32x2,
+            offset: 12,
+            shader_location: 1,
+        };
+
         let vertex_buffer_layout = wgpu::VertexBufferLayout {
-            array_stride: 12,
+            array_stride: size_of::<super::buffers::Vertex>() as u64,
             step_mode: wgpu::VertexStepMode::Vertex,
-            attributes: &[position_attribute],
+            attributes: &[position_attribute, uv_attribute],
         };
 
         let vertex_state = wgpu::VertexState {

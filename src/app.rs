@@ -59,7 +59,6 @@ impl App {
             // Poll for and process events
             self.glfw_instance.poll_events();
             for (_, event) in self.window.drain_events() {
-                println!("event : {:?}", event);
                 if let Some(action) = self.input_handler.handle_input(&event) {
                     match action {
                         AppActions::Exit => {
