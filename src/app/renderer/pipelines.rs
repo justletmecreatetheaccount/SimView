@@ -1,4 +1,4 @@
-use std::num::NonZero;
+use std::hash::Hash;
 
 use wgpu::{
     BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry, ColorTargetState,
@@ -28,9 +28,31 @@ impl Pipelines {
             count: None, // Again won't bother
         };
 
+        let positions_entry = BindGroupLayoutEntry {
+            binding: 1,
+            visibility: wgpu::ShaderStages::VERTEX,
+            ty: wgpu::BindingType::Buffer {
+                ty: wgpu::BufferBindingType::Storage { read_only: true }, // Not modified here, requires feature
+                has_dynamic_offset: false,
+                min_binding_size: None, // Won't bother now
+            },
+            count: None, // Again won't bother
+        };
+
+        let radii_entry = BindGroupLayoutEntry {
+            binding: 2,
+            visibility: wgpu::ShaderStages::VERTEX,
+            ty: wgpu::BindingType::Buffer {
+                ty: wgpu::BufferBindingType::Storage { read_only: true },
+                has_dynamic_offset: false,
+                min_binding_size: None, // Won't bother now
+            },
+            count: None, // Again won't bother
+        };
+
         let bind_group_layout_desc = &BindGroupLayoutDescriptor {
             label: Some("Each Frame BG Layout"),
-            entries: &[camera_entry],
+            entries: &[camera_entry, positions_entry, radii_entry],
         };
         let each_frame_bgl = device.create_bind_group_layout(bind_group_layout_desc);
 
@@ -67,13 +89,21 @@ impl Pipelines {
         };
 
         let primitive_state = PrimitiveState {
-            topology: wgpu::PrimitiveTopology::TriangleStrip,
+            topology: wgpu::PrimitiveTopology::TriangleList,
             strip_index_format: None,
             front_face: wgpu::FrontFace::Ccw,
             cull_mode: None,
             unclipped_depth: false, //Didn't bother to enable
             polygon_mode: wgpu::PolygonMode::Fill,
             conservative: false,
+        };
+
+        let depth_stencil_state = wgpu::DepthStencilState {
+            format: wgpu::TextureFormat::Depth32Float,
+            depth_write_enabled: Some(true),
+            depth_compare: Some(wgpu::CompareFunction::Less),
+            stencil: Default::default(),
+            bias: Default::default(),
         };
 
         let multisample_state = MultisampleState {
@@ -84,8 +114,8 @@ impl Pipelines {
 
         let color_target_state = ColorTargetState {
             format: preferred_format,
-            blend: None,                  // No translucency
-            write_mask: ColorWrites::ALL, // Overwrite everything
+            blend: Some(wgpu::BlendState::ALPHA_BLENDING),
+            write_mask: ColorWrites::ALL, // Write all colors
         };
 
         let frag_state = Some(FragmentState {
@@ -100,7 +130,7 @@ impl Pipelines {
             layout: Some(layout),
             vertex: vertex_state,
             primitive: primitive_state,
-            depth_stencil: None,
+            depth_stencil: Some(depth_stencil_state),
             multisample: multisample_state,
             fragment: frag_state,
             multiview_mask: None,

@@ -24,15 +24,15 @@ impl Camera {
         Camera {
             fov: PI / 2.0,
             aspect_ratio,
-            max_view_dist: 10.0,
+            max_view_dist: 1000.0,
             min_view_dist: 0.1,
             orbit_sensitivity: 0.01,
             pan_sensivity: 0.005,
-            zoom_sensitivity: 0.05,
+            zoom_sensitivity: 0.1,
 
             position: glam::vec3(0.0, 0.0, 0.0),
             orientation: glam::Quat::from_axis_angle(glam::vec3(0.0, 0.0, 1.0), 0.0),
-            distance: 1.0,
+            distance: 10.0,
         }
     }
 

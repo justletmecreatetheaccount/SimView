@@ -41,7 +41,7 @@ impl Gpu {
 
         let adapter = instance
             .request_adapter(&RequestAdapterOptions {
-                power_preference: wgpu::PowerPreference::LowPower,
+                power_preference: wgpu::PowerPreference::HighPerformance,
                 force_fallback_adapter: Default::default(),
                 compatible_surface: Some(&surface),
                 apply_limit_buckets: Default::default(),
@@ -56,7 +56,7 @@ impl Gpu {
         let (device, queue) = adapter
             .request_device(&DeviceDescriptor {
                 label: Some("LowPower Rendering Device"),
-                required_features: Default::default(),
+                required_features: wgpu::Features::SHADER_F64,
                 required_limits: Default::default(),
                 experimental_features: Default::default(),
                 memory_hints: wgpu::MemoryHints::MemoryUsage,

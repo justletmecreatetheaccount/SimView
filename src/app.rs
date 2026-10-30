@@ -6,6 +6,7 @@ mod window;
 
 use gpu::Gpu;
 use renderer::Renderer;
+use simgrain::Simulator;
 use window::WindowManager;
 
 use crate::app::{
@@ -17,6 +18,7 @@ pub struct App {
     input_handler: InputHandler,
     camera: Camera,
     renderer: Renderer,
+    simulator: Simulator,
     gpu: Gpu,
     window: WindowManager,
     glfw_instance: glfw::Glfw,
@@ -33,7 +35,13 @@ impl App {
 
         let gpu = Gpu::new(&window);
 
-        let renderer = Renderer::new(&gpu);
+        let simulator = Simulator::new(
+            gpu.device().clone(),
+            gpu.queue().clone(),
+            &String::from("test_simulation_state/latticeBig"),
+        );
+
+        let renderer = Renderer::new(&gpu, &window, &simulator);
 
         let aspect_ratio = window.framebuffer_size().0 as f32 / window.framebuffer_size().1 as f32;
         let camera = Camera::new(aspect_ratio);
@@ -44,6 +52,7 @@ impl App {
             glfw_instance,
             window,
             gpu,
+            simulator,
             renderer,
             camera,
             input_handler,
@@ -55,7 +64,8 @@ impl App {
     // Loop until the user closes the window
     pub fn main_loop(&mut self) {
         while !self.window.should_close() {
-            self.renderer.render(&self.gpu, &self.camera);
+            self.renderer
+                .render(&self.gpu, &self.camera, &self.simulator);
             // Poll for and process events
             self.glfw_instance.poll_events();
             for (_, event) in self.window.drain_events() {

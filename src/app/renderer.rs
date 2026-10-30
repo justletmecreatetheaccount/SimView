@@ -1,16 +1,18 @@
 mod buffers;
 mod pipelines;
 
+use simgrain::Simulator;
 use wgpu::{
     CommandBuffer, CommandEncoder, CommandEncoderDescriptor, Device, Queue,
     RenderPassColorAttachment, RenderPassDescriptor, TextureFormat, TextureView,
-    TextureViewDescriptor, VertexStepMode::Vertex,
+    TextureViewDescriptor, VertexStepMode::Vertex, util::RenderEncoder,
 };
 
 use crate::app::{
     camera::{Camera, CameraUniforms},
     gpu::Gpu,
     renderer::{buffers::Buffers, pipelines::Pipelines},
+    window::WindowManager,
 };
 
 pub struct Renderer {
@@ -18,17 +20,23 @@ pub struct Renderer {
     buffers: Buffers,
 }
 impl Renderer {
-    pub fn new(gpu: &Gpu) -> Renderer {
+    pub fn new(gpu: &Gpu, window: &WindowManager, sim: &Simulator) -> Renderer {
         let pipelines = Pipelines::new(gpu.device(), gpu.preferred_format());
 
-        let buffers = Buffers::new(1, &pipelines.each_frame_bgl, gpu.device());
+        let buffers = Buffers::new(
+            1,
+            &pipelines.each_frame_bgl,
+            gpu.device(),
+            window.framebuffer_size(),
+            sim,
+        );
 
         buffers.init_buffers_data(gpu.queue());
 
         Renderer { pipelines, buffers }
     }
 
-    pub fn render(&self, gpu: &Gpu, camera: &Camera) {
+    pub fn render(&self, gpu: &Gpu, camera: &Camera, sim: &Simulator) {
         let current_texture = match gpu.surface().get_current_texture() {
             wgpu::CurrentSurfaceTexture::Success(texture) => texture,
             wgpu::CurrentSurfaceTexture::Occluded | wgpu::CurrentSurfaceTexture::Timeout => {
@@ -70,7 +78,7 @@ impl Renderer {
 
         let mut encoder = gpu.device().create_command_encoder(&encoder_descriptor);
 
-        self.record_render_pass(&mut encoder, &current_texture_view);
+        self.record_render_pass(&mut encoder, &current_texture_view, sim);
 
         let cam_uniforms = CameraUniforms::from_cam(camera);
         let bytes: &[u8] = bytemuck::bytes_of(&cam_uniforms);
@@ -83,17 +91,32 @@ impl Renderer {
         gpu.queue().present(current_texture);
     }
 
-    fn record_render_pass(&self, encoder: &mut CommandEncoder, view: &TextureView) {
+    fn record_render_pass(
+        &self,
+        encoder: &mut CommandEncoder,
+        view: &TextureView,
+        sim: &Simulator,
+    ) {
         let color_attachement = RenderPassColorAttachment {
             view: view,
             depth_slice: None,
             resolve_target: None,    //No multisampling
             ops: Default::default(), // Clear the frame before, write the whole new frame
         };
+
+        let depth_stencil_attachment = wgpu::RenderPassDepthStencilAttachment {
+            view: &self.buffers.depth_buffer.1,
+            depth_ops: Some(wgpu::Operations {
+                load: wgpu::LoadOp::Clear(1.0), // Everything is supposed far
+                store: wgpu::StoreOp::Store,
+            }),
+            stencil_ops: None, // I ain't using it I think
+        };
+
         let render_pass_desc = RenderPassDescriptor {
             label: Some("Ball Drawing Pass"),
             color_attachments: &[Some(color_attachement)],
-            depth_stencil_attachment: None, //Will need one eventually
+            depth_stencil_attachment: Some(depth_stencil_attachment), //Will need one eventually
             timestamp_writes: None,
             occlusion_query_set: None, //God knows what this means
             multiview_mask: None,      //Layers
@@ -101,9 +124,9 @@ impl Renderer {
         let mut render_pass = encoder.begin_render_pass(&render_pass_desc);
 
         render_pass.set_pipeline(&self.pipelines.circle);
-        let vtx_buffer_range = 0..((size_of::<buffers::Vertex>() * 4) as u64);
+        let vtx_buffer_range = 0..((size_of::<buffers::Vertex>() * 18) as u64);
         render_pass.set_vertex_buffer(0, self.buffers.vertex_buffer.slice(vtx_buffer_range));
         render_pass.set_bind_group(0, Some(&self.buffers.each_frame_bg), &[]);
-        render_pass.draw(0..4, 0..1);
+        render_pass.draw(0..18, 0..(sim.sim_context().n_grains() as u32));
     }
 }
